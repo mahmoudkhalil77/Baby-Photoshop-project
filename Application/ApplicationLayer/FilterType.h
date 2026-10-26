@@ -1,0 +1,23 @@
+enum class FilterType {
+    BlackAndWhite = 1,
+    Blur,
+    Brightness,
+    Contrast,
+    Crop,
+    DetectEdges,
+    Flip,
+    FrameFilter,
+    Gray,
+    Hue,
+    InfraredFilter,
+    Invert,
+    Merge,
+    ResizeFilter,
+    Rotate,
+    Saturation,
+    TVScanlines,
+    WanoPurple,
+    Wanw,
+    Skew,
+    OilPainting
+};

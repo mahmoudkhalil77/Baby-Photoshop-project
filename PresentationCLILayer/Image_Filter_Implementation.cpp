@@ -1,0 +1,372 @@
+
+#include <iostream>
+#include <string>
+#include <limits>
+#include <cstdlib>
+
+#ifdef _WIN32
+#include <windows.h>
+#undef LoadImage
+#include <mmsystem.h>
+#include <shellapi.h>
+#endif
+
+#include "../Application/ApplicationLayer/ImageAppController.h"
+#include "../Application/ImageProcessing/Filters/SkewFilter/SkewFilter.h"
+#include "../Application/ImageProcessing/Filters/OilPaintingFilter/OilPaintingFilter.h"
+
+using namespace std;
+
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+void pauseConsole() {
+#ifdef _WIN32
+    system("pause");
+#else
+    cout << "Press Enter to continue...\n";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+#endif
+}
+
+void openSavedImage(const string& path) {
+#ifdef _WIN32
+    PlaySound(
+        TEXT("SystemExclamation"),
+        NULL,
+        SND_ALIAS | SND_ASYNC
+    );
+    wstring widestr(
+        path.begin(),
+        path.end()
+    );
+    ShellExecuteW(
+        NULL,
+        L"open",
+        widestr.c_str(),
+        NULL,
+        NULL,
+        SW_SHOWNORMAL
+    );
+#elif __APPLE__
+    string cmd = "open \"" + path + "\"";
+    system(cmd.c_str());
+#else
+    string cmd = "xdg-open \"" + path + "\"";
+    system(cmd.c_str());
+#endif
+}
+
+void showMenu() {
+    cout << "\n";
+    cout << "========================================\n";
+    cout << "          IMAGE PROCESSOR CLI           \n";
+    cout << "========================================\n";
+    cout << "  1. Black & White\n";
+    cout << "  2. Blur\n";
+    cout << "  3. Brightness\n";
+    cout << "  4. Contrast\n";
+    cout << "  5. Crop\n";
+    cout << "  6. Detect Edges\n";
+    cout << "  7. Flip\n";
+    cout << "  8. Frame Filter\n";
+    cout << "  9. Gray\n";
+    cout << " 10. Hue\n";
+    cout << " 11. Infrared Filter\n";
+    cout << " 12. Invert\n";
+    cout << " 13. Merge\n";
+    cout << " 14. Resize\n";
+    cout << " 15. Rotate\n";
+    cout << " 16. Saturation\n";
+    cout << " 17. TV Scanlines\n";
+    cout << " 18. Wano Purple\n";
+    cout << " 19. Wanw\n";
+    cout << " 20. Skew\n";
+    cout << " 21. Oil Painting\n";
+    cout << "  0. Exit\n";
+    cout << "========================================\n";
+}
+
+bool askYesNo(const string& message) {
+
+    while (true) {
+
+        char answer;
+
+        cout << message << " (y/n): ";
+        cin >> answer;
+
+        if (answer == 'y' || answer == 'Y') {
+            return true;
+        }
+
+        if (answer == 'n' || answer == 'N') {
+            return false;
+        }
+
+        cout << "[Error] Please enter Y or N.\n";
+    }
+}
+
+int main() {
+
+    try {
+
+        ImageAppController controller;
+        Image image;
+
+
+
+        while (true) {
+
+
+
+            while (true) {
+                clearScreen();
+
+                string loadPath;
+
+                cout << "\n========================================\n";
+                cout << "Enter image path to load: ";
+                cin >> loadPath;
+
+                try {
+
+                    if (controller.LoadImage(loadPath, image)) {
+
+                        cout << "\n[Success] Image loaded successfully!\n";
+                        break;
+                    }
+
+                    cout << "\n[Error] Could not load the image.\n";
+                    cout << "Please check the file name/path and try again.\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+                }
+                catch (const exception& ex) {
+
+                    cout << "\n[Error] Unable to load the image.\n";
+                    cout << "Reason: " << ex.what() << "\n";
+                    cout << "Please try again.\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+                }
+                catch (...) {
+
+                    cout << "\n[Error] Unexpected error while loading the image.\n";
+                    cout << "Please try again.\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+                }
+            }
+
+
+
+            while (true) {
+
+                clearScreen();
+                showMenu();
+
+                int choice;
+
+                cout << "Choose a filter option: ";
+
+                if (!(cin >> choice)) {
+
+                    cout << "\n[Error] Invalid input.\n";
+                    cout << "Please enter a number from 0 to 21.\n";
+
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+
+                    continue;
+                }
+
+
+                if (choice == 0) {
+                    clearScreen();
+                    cout << "\nExiting Image Processor...\n";
+                    return 0;
+                }
+
+
+
+                if (choice < 1 || choice > 21) {
+
+                    cout << "\n[Error] Invalid filter choice.\n";
+                    cout << "Please choose a number from 1 to 21.\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+
+                    continue;
+                }
+
+                FilterType selectedFilter =
+                    static_cast<FilterType>(choice);
+
+
+
+                try {
+                    if (selectedFilter == FilterType::Skew) {
+                        float sx = 0.3f;
+                        float sy = 0.0f;
+                        cout << "\nEnter horizontal skew factor (e.g., 0.3, or 0 for none): ";
+                        if (!(cin >> sx)) {
+                            cin.clear();
+                            cin.ignore(10000, '\n');
+                            sx = 0.3f;
+                        }
+                        cout << "Enter vertical skew factor (e.g., 0.0, or 0 for none): ";
+                        if (!(cin >> sy)) {
+                            cin.clear();
+                            cin.ignore(10000, '\n');
+                            sy = 0.0f;
+                        }
+                        SkewFilter customSkew(sx, sy);
+                        customSkew.apply(image);
+                        cout << "\n[Success] Filter applied successfully!\n";
+                    }
+                    else if (selectedFilter == FilterType::OilPainting) {
+                        int radius = 4;
+                        int levels = 20;
+                        cout << "\nEnter brush radius (e.g., 4): ";
+                        if (!(cin >> radius)) {
+                            cin.clear();
+                            cin.ignore(10000, '\n');
+                            radius = 4;
+                        }
+                        cout << "Enter intensity levels (e.g., 20): ";
+                        if (!(cin >> levels)) {
+                            cin.clear();
+                            cin.ignore(10000, '\n');
+                            levels = 20;
+                        }
+                        OilPaintingFilter customOil(radius, levels);
+                        customOil.apply(image);
+                        cout << "\n[Success] Filter applied successfully!\n";
+                    }
+                    else {
+                        if (!controller.applyFilter(selectedFilter, image)) {
+
+                            cout << "\n[Error] The filter could not be applied.\n";
+                            cout << "Returning to the menu...\n";
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                            cin.get();
+
+                            continue;
+                        }
+
+                        cout << "\n[Success] Filter applied successfully!\n";
+                    }
+                }
+                catch (const exception& ex) {
+
+                    cout << "\n[Error] Failed to apply the filter.\n";
+                    cout << "Reason: " << ex.what() << "\n";
+                    cout << "Returning to the menu...\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+
+                    continue;
+                }
+                catch (...) {
+
+                    cout << "\n[Error] Unexpected error while applying the filter.\n";
+                    cout << "Returning to the menu...\n";
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin.get();
+
+
+                    continue;
+                }
+
+
+
+                while (true) {
+                    clearScreen();
+                    string savePath;
+
+                    cout << "\nEnter save path (e.g., output.jpg): ";
+                    cin >> savePath;
+
+                    try {
+
+                        if (controller.SaveImage(image, savePath)) {
+
+                            cout << "\n[Success] Image saved successfully!\n";
+                            cout << "Location: " << savePath << "\n";
+
+                            openSavedImage(savePath);
+
+                            break;
+                        }
+
+                        cout << "\n[Error] Failed to save the image.\n";
+                        cout << "Please check the file name/path and try again.\n";
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cin.get();
+                    }
+                    catch (const exception& ex) {
+
+                        cout << "\n[Error] Unable to save the image.\n";
+                        cout << "Reason: " << ex.what() << "\n";
+                        cout << "Please enter another save path.\n";
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cin.get();
+                    }
+                    catch (...) {
+
+                        cout << "\n[Error] Unexpected error while saving.\n";
+                        cout << "Please enter another save path.\n";
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        cin.get();
+                    }
+                }
+
+                if (askYesNo("\nDo you want to apply another filter?")) {
+                    continue;
+                }
+
+
+
+                if (askYesNo("\nDo you want to load another image?")) {
+                    break;
+                }
+
+                clearScreen();
+                return 0;
+            }
+
+
+            continue;
+        }
+
+    }
+    catch (const exception& ex) {
+
+        cout << "\n========================================\n";
+        cout << "Unexpected application error.\n";
+        cout << "Reason: " << ex.what() << "\n";
+        cout << "The application will remain open.\n";
+        cout << "========================================\n";
+
+        pauseConsole();
+    }
+    catch (...) {
+
+        cout << "\n========================================\n";
+        cout << "Unexpected application error.\n";
+        cout << "The application will remain open.\n";
+        cout << "========================================\n";
+
+        pauseConsole();
+    }
+
+    return 0;
+}
